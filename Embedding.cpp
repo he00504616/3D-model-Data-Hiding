@@ -7,7 +7,7 @@
 #include <time.h>
 using namespace std;
 
-struct Vertex  //頂點結構  
+struct Vertex  //頂點結構
 {
 double x,y,z;
 public:
@@ -27,15 +27,17 @@ public:
 		}
 }P0;
 
-struct Edge  //邊結構 
+struct Edge  //邊結構
 {
-Vertex a,b,q;// q為ab線段旁的點，組成另一三角
+Vertex a,b,q;  // q為ab線段旁的點，組成另一三角
+int index;  //set q 用
 public:
 	void show()
 	    {
-		/*cout << "a= ";a.show();
-		cout << "b= ";b.show();*/
+		cout << "a= ";a.show();
+		cout << "b= ";b.show();
 		cout << "q= ";q.show();
+		cout << "index= " << index;
 		}
 	bool operator==( const Edge &k )
 	    {
@@ -45,12 +47,12 @@ public:
 		}
 };
 
-struct  Face   //面結構 
+struct Face  //面結構
 {
 Vertex i,j,k;
-int vertex_index[3];
 Edge ij,ik,jk;
-bool check;    //檢測是否尋訪過 
+int vertex_index[3];
+bool check;  //檢測是否尋訪過
 //int index;
 public:
 	Face( Vertex a=P0,Vertex b=P0,Vertex c=P0 )
@@ -66,24 +68,24 @@ public:
 		}
 	void show_e()
 	    {
-		cout << "ij-> ";ij.show();
-		cout << "ik-> ";ik.show();
-		cout << "jk-> ";jk.show();
+		cout << "ij-> ";ij.show();cout<<endl;
+		cout << "ik-> ";ik.show();cout<<endl;
+		cout << "jk-> ";jk.show();cout<<endl;
 		}
 	bool operator==( const Face &k )
 	    {
-		if ( (this->i == k.i && this->j == k.j && this->k == k.k ) || 
-		     (this->i == k.i && this->j == k.k && this->k == k.j ) || 
-		     (this->i == k.j && this->j == k.i && this->k == k.k ) || 
-		     (this->i == k.j && this->j == k.k && this->k == k.i ) || 
-		     (this->i == k.k && this->j == k.i && this->k == k.j ) || 
+		if ( (this->i == k.i && this->j == k.j && this->k == k.k ) ||
+		     (this->i == k.i && this->j == k.k && this->k == k.j ) ||
+		     (this->i == k.j && this->j == k.i && this->k == k.k ) ||
+		     (this->i == k.j && this->j == k.k && this->k == k.i ) ||
+		     (this->i == k.k && this->j == k.i && this->k == k.j ) ||
 		     (this->i == k.k && this->j == k.j && this->k == k.i )  )
 		    return true;
 		return false;
-		}	
+		}
 };
 
-string ToBinary ( int a ) //數字轉8bit二進位 
+string ToBinary ( int a )  //數字轉8bit二進位
     {
     string temp="";
 	while ( a != 0 )
@@ -96,93 +98,95 @@ string ToBinary ( int a ) //數字轉8bit二進位
 	    temp = "0" + temp;
 	return temp;
 	}
-	
+
 vector <int> viTraversal;     //面的尋訪序列
-vector <Vertex> vVertex(1);   //儲存obj中的頂點 (第0項為空點(0,0,0) ) 
-vector <Face> vFace;          //儲存obj中的面 
+vector <Vertex> vVertex(1);   //儲存obj中的頂點 (第0項為空點(0,0,0) )
+vector <Face> vFace;          //儲存obj中的面
+vector <Edge> vEdge;
 
 void Traverse ( int iStart )
     {
     queue <Face> qFace;            //BFS
-    string sStart;                 //起始面之二進制 
+    string sStart;                 //起始面之二進制
     sStart = ToBinary( iStart );
     
-    qFace.push( vFace[iStart] );   //放入起始面 
-    viTraversal.push_back(iStart); //加入尋訪序列 
+    qFace.push( vFace[iStart] );   //放入起始面
+    viTraversal.push_back(iStart); //加入尋訪序列
     vFace[iStart].check = 1;
-	
+
 	bool bOutward = 0 , bRotate = 0; // 是否往外擴張 /  順時or逆時
 	int iNow = 0;
 	int iFaceSize = vFace.size();
-	
+
 	while ( !qFace.empty() )
 	    {
-	    if ( iNow == sStart.size() )  //到底重頭 
+	    if ( iNow == sStart.size() )  //到底重頭
 	        iNow = 0;
 
-	    bOutward = 0;                 //設定 
-		bRotate = sStart[ iNow ] -'0';    
-		
+	    bOutward = 0;                 //設定
+		bRotate = sStart[ iNow ] -'0';
+
 		Face temp = qFace.front();
-		qFace.pop(); 
-		Face next_ij( temp.i ,temp.j , temp.ij.q );   //以該三角形之三邊  分別創建 外圍三角形 
+		qFace.pop();
+		Face next_ij( temp.i ,temp.j , temp.ij.q );   //以該三角形之三邊  分別創建 外圍三角形
 		Face next_ik( temp.i ,temp.k , temp.ik.q );
 		Face next_jk( temp.j ,temp.k , temp.jk.q );
-		
-		for ( int x=0;x<iFaceSize;x++ )           // ij 
+
+		for ( int x=0;x<iFaceSize;x++ )           // ij
 		    if ( !vFace[x].check && vFace[x] == next_ij  )
 	            {
 				qFace.push( vFace[x] );
-				viTraversal.push_back(x);            //放入尋訪序列 
+				viTraversal.push_back(x);         //放入尋訪序列
 				vFace[x].check = 1;
 				bOutward = 1;
 				break;
 				}
-		if ( bRotate == 0 )  //順時 
+		if ( bRotate == 0 )  //順時
 		    {
-			for ( int x=0;x<iFaceSize;x++ )  // ik 
+			for ( int x=0;x<iFaceSize;x++ )  // ik
 		        if ( !vFace[x].check && vFace[x] == next_ik )
-	                {            
+	                {
 				    qFace.push( vFace[x] );
 				    viTraversal.push_back(x);
 				    vFace[x].check = 1;
 				    bOutward = 1;
 				    break;
-				    }	
+				    }
 		    for ( int x=0;x<iFaceSize;x++ )  //jk
 		            if ( !vFace[x].check && vFace[x] == next_jk )
-	                {            
+	                {
 				    qFace.push( vFace[x] );
 				    viTraversal.push_back(x);
 			    	vFace[x].check = 1;
 				    bOutward = 1;
 				    break;
-				    }		
+				    }
 			}
-		else if ( bRotate == 1 ) //逆時 
-		    {		
+		else if ( bRotate == 1 ) //逆時
+		    {
 		    for ( int x=0;x<iFaceSize;x++ ) //jk
 		            if ( !vFace[x].check && vFace[x] == next_jk )
-	                {            
+	                {
 				    qFace.push( vFace[x] );
 				    viTraversal.push_back(x);
 			    	vFace[x].check = 1;
 				    bOutward = 1;
 				    break;
-				    }		
+				    }
 			for ( int x=0;x<iFaceSize;x++ ) //ik
 		        if ( !vFace[x].check && vFace[x] == next_ik )
-	                {            
+	                {
 				    qFace.push( vFace[x] );
 				    viTraversal.push_back(x);
 				    vFace[x].check = 1;
 				    bOutward = 1;
 				    break;
-				    }	
-			}	
-		iNow += bOutward;  //有往外+1 
+				    }
+			}
+		iNow += bOutward;  //有往外+1
 		}
     }
+
 int main ()
 {
 string sKeyWord;
@@ -225,43 +229,102 @@ clock_t end = clock();
 float costTime = (float)(end - start)/CLK_TCK;
 printf("---fin : CPU Time: %f sec.\n",costTime );
 
-start = clock();	
+start = clock();
 for ( int x=0;x<vFace.size();x++ )     //設定q，q用來與線段組成另一三角形 
     {
+	vFace[x].ij.index = vFace[x].ik.index = vFace[x].jk.index = x;
 	Edge Eij,Eik,Ejk;   //取出該三角形之三邊 
 	Eij = vFace[x].ij;
 	Eik = vFace[x].ik;
 	Ejk = vFace[x].jk;
-	for ( int y=0;y<vFace.size();y++ )
+	bool ij=1,ik=1,jk=1;
+	bool temp;
+	for ( int y=0;y<vEdge.size(); )
 	    {
-		if ( x == y )  //自己就跳出 
-		    continue;
-		else if ( vFace[y].ij == Eij )      //尋找有相同邊的三角形 設定 q
-		    vFace[x].ij.q = vFace[y].k;
-		else if ( vFace[y].ik == Eij )
-		    vFace[x].ij.q = vFace[y].j;
-		else if ( vFace[y].jk == Eij )
-		    vFace[x].ij.q = vFace[y].i;
-		
-		else if ( vFace[y].ij == Eik )
-		    vFace[x].ik.q = vFace[y].k;
-		else if ( vFace[y].ik == Eik )
-		    vFace[x].ik.q = vFace[y].j;
-		else if ( vFace[y].jk == Eik )
-		    vFace[x].ik.q = vFace[y].i;
-		
-		else if ( vFace[y].ij == Ejk )
-		    vFace[x].jk.q = vFace[y].k;
-		else if ( vFace[y].ik == Ejk )
-		    vFace[x].jk.q = vFace[y].j;
-		else if ( vFace[y].jk == Ejk )
-		    vFace[x].jk.q = vFace[y].i;		
+	    temp=1;
+		if ( Eij == vEdge[y] )
+		    {
+		    if ( Eij == vFace[ vEdge[y].index ].ij )
+		        {
+				vFace[x].ij.q = vFace[ vEdge[y].index ].k;
+				vFace[ vEdge[y].index ].ij.q = vFace[x].k;
+				}
+			else if ( Eij == vFace[ vEdge[y].index ].ik )
+		        {
+				vFace[x].ij.q = vFace[ vEdge[y].index ].j;
+				vFace[ vEdge[y].index ].ik.q = vFace[x].k;
+				}
+			else if ( Eij == vFace[ vEdge[y].index ].jk )
+		        {
+				vFace[x].ij.q = vFace[ vEdge[y].index ].i;
+				vFace[ vEdge[y].index ].jk.q = vFace[x].k;
+				}
+			ij=temp=0;		    
+			}
+		else if ( Eik == vEdge[y] )
+		    {
+		    if ( Eik == vFace[ vEdge[y].index ].ij )
+		        {
+				vFace[x].ik.q = vFace[ vEdge[y].index ].k;
+				vFace[ vEdge[y].index ].ij.q = vFace[x].j;
+				}
+			else if ( Eik == vFace[ vEdge[y].index ].ik )
+		        {
+				vFace[x].ik.q = vFace[ vEdge[y].index ].j;
+				vFace[ vEdge[y].index ].ik.q = vFace[x].j;
+				}
+			else if ( Eik == vFace[ vEdge[y].index ].jk )
+		        {
+				vFace[x].ik.q = vFace[ vEdge[y].index ].i;
+				vFace[ vEdge[y].index ].jk.q = vFace[x].j;
+				}
+			ik=temp=0;
+		    }
+		else if ( Ejk == vEdge[y] )
+		    {
+		    if ( Ejk == vFace[ vEdge[y].index ].ij )
+		        {
+				vFace[x].jk.q = vFace[ vEdge[y].index ].k;
+				vFace[ vEdge[y].index ].ij.q = vFace[x].i;
+				}
+			else if ( Ejk == vFace[ vEdge[y].index ].ik )
+		        {
+				vFace[x].jk.q = vFace[ vEdge[y].index ].j;
+				vFace[ vEdge[y].index ].ik.q = vFace[x].i;
+				}
+			else if ( Ejk == vFace[ vEdge[y].index ].jk )
+		        {
+				vFace[x].jk.q = vFace[ vEdge[y].index ].i;
+				vFace[ vEdge[y].index ].jk.q = vFace[x].i;
+				}
+			jk=temp=0;
+		    }
+		if ( temp )
+		    y++;
+		else
+		    vEdge.erase(vEdge.begin()+y);
 		}
+	if ( ij )
+	    vEdge.push_back(Eij);
+	if ( ik )
+	    vEdge.push_back(Eik);
+	if ( jk )
+		vEdge.push_back(Ejk);
 	}
 end = clock();
 costTime = (float)(end - start)/CLK_TCK;
 printf("---set q : CPU Time: %f sec.\n",costTime );
-	
+/*
+for ( int x=0;x<vFace.size();x++ )
+	{
+	vFace[x].ij.show();cout<<endl;
+	vFace[x].ik.show();cout<<endl;
+	vFace[x].jk.show();cout<<endl;
+	printf("---------\n");
+	}
+
+cout<<vEdge.size()<<endl;*/
+
 //使用者輸入起始三角形索引值、p、與需要隱藏的訊息(目前為數字)	
 cout << "Load file OK.\nTotal " << vVertex.size() -1 << " Vertex, " << vFace.size() << " Faces." << endl << endl;
 printf("Type Start_Face ( number < %d )\n",vFace.size());
@@ -337,9 +400,9 @@ for ( i = 0 ; i < p ; i ++ )
 	else if ( stego[iPer[i]] != viTraversal[i+1] )
 	    swap ( stego[iPer[i]] , stego[find( stego.begin() , stego.end() , viTraversal[i+1] )-stego.begin()] );
 	
-	for ( j = 0 ; j < vFace.size() ; j ++ )
+	/*for ( j = 0 ; j < vFace.size() ; j ++ )
         cout << stego[j] << ' ';
-    cout << endl;
+    cout << endl;*/
     }
 //輸出Stego.obj 
 fout.open( "Stego.obj" , ios::out );

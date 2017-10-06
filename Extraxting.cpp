@@ -29,13 +29,15 @@ public:
 
 struct Edge  //邊結構
 {
-Vertex a,b,q;// q為ab線段旁的點，組成另一三角
+Vertex a,b,q;  // q為ab線段旁的點，組成另一三角
+int index;  //set q 用
 public:
 	void show()
 	    {
-		/*cout << "a= ";a.show();
-		cout << "b= ";b.show();*/
+		cout << "a= ";a.show();
+		cout << "b= ";b.show();
 		cout << "q= ";q.show();
+		cout << "index= " << index;
 		}
 	bool operator==( const Edge &k )
 	    {
@@ -45,12 +47,12 @@ public:
 		}
 };
 
-struct  Face   //面結構
+struct Face  //面結構
 {
 Vertex i,j,k;
-int vertex_index[3];
 Edge ij,ik,jk;
-bool check;    //檢測是否尋訪過
+int vertex_index[3];
+bool check;  //檢測是否尋訪過
 //int index;
 public:
 	Face( Vertex a=P0,Vertex b=P0,Vertex c=P0 )
@@ -66,9 +68,9 @@ public:
 		}
 	void show_e()
 	    {
-		cout << "ij-> ";ij.show();
-		cout << "ik-> ";ik.show();
-		cout << "jk-> ";jk.show();
+		cout << "ij-> ";ij.show();cout<<endl;
+		cout << "ik-> ";ik.show();cout<<endl;
+		cout << "jk-> ";jk.show();cout<<endl;
 		}
 	bool operator==( const Face &k )
 	    {
@@ -83,7 +85,7 @@ public:
 		}
 };
 
-string ToBinary ( int a ) //數字轉8bit二進位
+string ToBinary ( int a )  //數字轉8bit二進位
     {
     string temp="";
 	while ( a != 0 )
@@ -100,15 +102,17 @@ string ToBinary ( int a ) //數字轉8bit二進位
 vector <int> viTraversal;     //面的尋訪序列
 vector <Vertex> vVertex(1);   //儲存obj中的頂點 (第0項為空點(0,0,0) )
 vector <Face> vFace;          //儲存obj中的面
+vector <Edge> vEdge;
 
 void Traverse ( int iStart )
     {
     queue <Face> qFace;            //BFS
     string sStart;                 //起始面之二進制
     sStart = ToBinary( iStart );
+    
     qFace.push( vFace[iStart] );   //放入起始面
-    vFace[iStart].check = 1;
     viTraversal.push_back(iStart); //加入尋訪序列
+    vFace[iStart].check = 1;
 
 	bool bOutward = 0 , bRotate = 0; // 是否往外擴張 /  順時or逆時
 	int iNow = 0;
@@ -122,7 +126,7 @@ void Traverse ( int iStart )
 	    bOutward = 0;                 //設定
 		bRotate = sStart[ iNow ] -'0';
 
-		Face temp=qFace.front();
+		Face temp = qFace.front();
 		qFace.pop();
 		Face next_ij( temp.i ,temp.j , temp.ij.q );   //以該三角形之三邊  分別創建 外圍三角形
 		Face next_ik( temp.i ,temp.k , temp.ik.q );
@@ -132,7 +136,7 @@ void Traverse ( int iStart )
 		    if ( !vFace[x].check && vFace[x] == next_ij  )
 	            {
 				qFace.push( vFace[x] );
-				viTraversal.push_back(x);            //放入尋訪序列
+				viTraversal.push_back(x);         //放入尋訪序列
 				vFace[x].check = 1;
 				bOutward = 1;
 				break;
@@ -182,21 +186,28 @@ void Traverse ( int iStart )
 		iNow += bOutward;  //有往外+1
 		}
     }
+
 int main ()
 {
-fstream fin;
-fin.open("Stego.obj",ios::in);
 string sKeyWord;
 int iMessages,p,i,j,k,iStart;
 
+//讀取Stego.obj 
+fstream fin;
+fin.open("Stego.obj",ios::in);
+
+//由第一個英文字母來決定後面吃測資的方式 
+clock_t start = clock();
 while ( fin >> sKeyWord )
     {
+    //把頂點加入陣列 
     if ( sKeyWord == "v" )
 	    {
 	    Vertex temp;
 	    fin >> temp.x >> temp.y >> temp.z;
 	    vVertex.push_back( temp );
 		}
+	//把面加入陣列 
 	else if ( sKeyWord == "f" )
 	    {
 	    Face temp;
@@ -211,44 +222,100 @@ while ( fin >> sKeyWord )
 		temp.ij = Eij;
 		temp.ik = Eik;
 		temp.jk = Ejk;
-		
-	    //temp.index = vFace.size();
 		vFace.push_back( temp );
 		}
 	}
+clock_t end = clock();
+float costTime = (float)(end - start)/CLK_TCK;
+printf("---fin : CPU Time: %f sec.\n",costTime );
+
+start = clock();
 for ( int x=0;x<vFace.size();x++ )     //設定q，q用來與線段組成另一三角形 
     {
-	Edge Eij,Eik,Ejk;
+	vFace[x].ij.index = vFace[x].ik.index = vFace[x].jk.index = x;
+	Edge Eij,Eik,Ejk;   //取出該三角形之三邊 
 	Eij = vFace[x].ij;
 	Eik = vFace[x].ik;
 	Ejk = vFace[x].jk;
-	for ( int y=0;y<vFace.size();y++ )
+	bool ij=1,ik=1,jk=1;
+	bool temp;
+	for ( int y=0;y<vEdge.size(); )
 	    {
-		if ( x == y )
-		    continue;
-		if ( vFace[y].ij == Eij )
-		    vFace[x].ij.q = vFace[y].k;
-		if ( vFace[y].ik == Eij )
-		    vFace[x].ij.q = vFace[y].j;
-		if ( vFace[y].jk == Eij )
-		    vFace[x].ij.q = vFace[y].i;
-		
-		if ( vFace[y].ij == Eik )
-		    vFace[x].ik.q = vFace[y].k;
-		if ( vFace[y].ik == Eik )
-		    vFace[x].ik.q = vFace[y].j;
-		if ( vFace[y].jk == Eik )
-		    vFace[x].ik.q = vFace[y].i;
-		
-		if ( vFace[y].ij == Ejk )
-		    vFace[x].jk.q = vFace[y].k;
-		if ( vFace[y].ik == Ejk )
-		    vFace[x].jk.q = vFace[y].j;
-		if ( vFace[y].jk == Ejk )
-		    vFace[x].jk.q = vFace[y].i;		
+	    temp=1;
+		if ( Eij == vEdge[y] )
+		    {
+		    if ( Eij == vFace[ vEdge[y].index ].ij )
+		        {
+				vFace[x].ij.q = vFace[ vEdge[y].index ].k;
+				vFace[ vEdge[y].index ].ij.q = vFace[x].k;
+				}
+			else if ( Eij == vFace[ vEdge[y].index ].ik )
+		        {
+				vFace[x].ij.q = vFace[ vEdge[y].index ].j;
+				vFace[ vEdge[y].index ].ik.q = vFace[x].k;
+				}
+			else if ( Eij == vFace[ vEdge[y].index ].jk )
+		        {
+				vFace[x].ij.q = vFace[ vEdge[y].index ].i;
+				vFace[ vEdge[y].index ].jk.q = vFace[x].k;
+				}
+			ij=temp=0;		    
+			}
+		else if ( Eik == vEdge[y] )
+		    {
+		    if ( Eik == vFace[ vEdge[y].index ].ij )
+		        {
+				vFace[x].ik.q = vFace[ vEdge[y].index ].k;
+				vFace[ vEdge[y].index ].ij.q = vFace[x].j;
+				}
+			else if ( Eik == vFace[ vEdge[y].index ].ik )
+		        {
+				vFace[x].ik.q = vFace[ vEdge[y].index ].j;
+				vFace[ vEdge[y].index ].ik.q = vFace[x].j;
+				}
+			else if ( Eik == vFace[ vEdge[y].index ].jk )
+		        {
+				vFace[x].ik.q = vFace[ vEdge[y].index ].i;
+				vFace[ vEdge[y].index ].jk.q = vFace[x].j;
+				}
+			ik=temp=0;
+		    }
+		else if ( Ejk == vEdge[y] )
+		    {
+		    if ( Ejk == vFace[ vEdge[y].index ].ij )
+		        {
+				vFace[x].jk.q = vFace[ vEdge[y].index ].k;
+				vFace[ vEdge[y].index ].ij.q = vFace[x].i;
+				}
+			else if ( Ejk == vFace[ vEdge[y].index ].ik )
+		        {
+				vFace[x].jk.q = vFace[ vEdge[y].index ].j;
+				vFace[ vEdge[y].index ].ik.q = vFace[x].i;
+				}
+			else if ( Ejk == vFace[ vEdge[y].index ].jk )
+		        {
+				vFace[x].jk.q = vFace[ vEdge[y].index ].i;
+				vFace[ vEdge[y].index ].jk.q = vFace[x].i;
+				}
+			jk=temp=0;
+		    }
+		if ( temp )
+		    y++;
+		else
+		    vEdge.erase(vEdge.begin()+y);
 		}
+	if ( ij )
+	    vEdge.push_back(Eij);
+	if ( ik )
+	    vEdge.push_back(Eik);
+	if ( jk )
+		vEdge.push_back(Ejk);
 	}
-cout << "Load file OK.\nTotal " << vVertex.size() << " Vertex, " << vFace.size() << " Faces." << endl << endl;
+end = clock();
+costTime = (float)(end - start)/CLK_TCK;
+printf("---set q : CPU Time: %f sec.\n",costTime );
+
+cout << "Load file OK.\nTotal " << vVertex.size() -1 << " Vertex, " << vFace.size() << " Faces." << endl << endl;
 fin.close();
 fin.open("Secret Key.txt",ios::in);
 printf("Secret Key.txt loading success.\n");
@@ -268,7 +335,13 @@ for ( i = 0 ; i < p ; i ++ )
         iFactorial *= i;
 	}
 cout << iFactorial << endl;
+
+start = clock();
 Traverse(iStart);
+end = clock();
+costTime = (float)(end - start)/CLK_TCK;
+printf("---Traverse : CPU Time: %f sec.\n",costTime );
+
 /*for ( i = 0 ; i < viTraversal.size() ; i ++ )
     printf("%d->",viTraversal[i]);
 cout << endl;*/
