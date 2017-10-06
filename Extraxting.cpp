@@ -14,19 +14,10 @@ public:
 	double x,y,z;
 	int index;
     Vertex( double px=0,double py=0,double pz=0 ):x(px),y(py),z(pz),index(0){}
-	bool operator==( const Vertex &k )
-	    {
-		return (this->x == k.x && this->y == k.y && this->z == k.z );
-		}
+	bool operator==( const Vertex &k )	{ return (this->x == k.x && this->y == k.y && this->z == k.z ); }
 }P0;
-istream& operator>>( istream &is , Vertex &k )
-    {
-	return is >> k.x >> k.y >> k.z;
-	}
-ostream& operator<<( ostream &os , Vertex &k )
-    {
-	return os << "( " << k.x << " , " << k.y << " , " << k.z << " )";
-	}
+istream& operator>>( istream &is , Vertex &k )	{ return is >> k.x >> k.y >> k.z; }
+ostream& operator<<( ostream &os , Vertex k )	{ return os << "( " << k.x << " , " << k.y << " , " << k.z << " )"; }
 
 class Face	//面結構
 {
@@ -49,10 +40,7 @@ public:
 		return false;
 		}
 };
-ostream& operator<<( ostream &os , Face &a )
-    {
-	return os << "i= " << a.i << " j= " << a.j << " k= " << a.k;
-	}
+ostream& operator<<( ostream &os , Face a )	{ return os << "i= " << a.i << " j= " << a.j << " k= " << a.k; }
 
 string ToBinary ( int a )  //數字轉8bit二進位
     {
@@ -73,7 +61,7 @@ vector <Vertex> vVertex(1);	//儲存obj中的頂點 (第0項為空點(0,0,0) )
 vector <Face> vFace;		//儲存obj中的面
 vector <Face> vFace_sv;		//set vicinity
 
-void Traverse ( int iStart )
+void Traverse ( int iStart , int sM_size , int p )
     {
     queue <Face> qFace;            //BFS
     string sStart;                 //起始面之二進制
@@ -86,9 +74,9 @@ void Traverse ( int iStart )
 	bool bOutward = 0 , bRotate = 0; // 是否往外擴張 /  順時or逆時
 	int iNow = 0;
 	int iFaceSize = vFace.size();
-
+    ++sM_size;
 	while ( !qFace.empty() )
-	    {
+	    {    
 	    if ( iNow == sStart.size() )  //到底重頭
 	        iNow = 0;
 
@@ -102,7 +90,7 @@ void Traverse ( int iStart )
 		Face next_jk = vFace[ temp.vicinity[2] ];
 
 		for ( int x=0;x<iFaceSize;x++ )           // ij
-		    if ( !vFace[x].check && vFace[x] == next_ij  )
+		    if ( viTraversal.size() <= sM_size*p && !vFace[x].check && vFace[x] == next_ij  )
 	            {
 				qFace.push( vFace[x] );
 				viTraversal.push_back(x);         //放入尋訪序列
@@ -113,7 +101,7 @@ void Traverse ( int iStart )
 		if ( bRotate == 0 )  //順時
 		    {
 			for ( int x=0;x<iFaceSize;x++ )  // ik
-		        if ( !vFace[x].check && vFace[x] == next_ik )
+		        if ( viTraversal.size() <= sM_size*p && !vFace[x].check && vFace[x] == next_ik )
 	                {
 				    qFace.push( vFace[x] );
 				    viTraversal.push_back(x);
@@ -122,7 +110,7 @@ void Traverse ( int iStart )
 				    break;
 				    }
 		    for ( int x=0;x<iFaceSize;x++ )  //jk
-		            if ( !vFace[x].check && vFace[x] == next_jk )
+		            if ( viTraversal.size() <= sM_size*p && !vFace[x].check && vFace[x] == next_jk )
 	                {
 				    qFace.push( vFace[x] );
 				    viTraversal.push_back(x);
@@ -134,7 +122,7 @@ void Traverse ( int iStart )
 		else if ( bRotate == 1 ) //逆時
 		    {
 		    for ( int x=0;x<iFaceSize;x++ ) //jk
-		            if ( !vFace[x].check && vFace[x] == next_jk )
+		            if ( viTraversal.size() <= sM_size*p && !vFace[x].check && vFace[x] == next_jk )
 	                {
 				    qFace.push( vFace[x] );
 				    viTraversal.push_back(x);
@@ -143,7 +131,7 @@ void Traverse ( int iStart )
 				    break;
 				    }
 			for ( int x=0;x<iFaceSize;x++ ) //ik
-		        if ( !vFace[x].check && vFace[x] == next_ik )
+		        if ( viTraversal.size() <= sM_size*p && !vFace[x].check && vFace[x] == next_ik )
 	                {
 				    qFace.push( vFace[x] );
 				    viTraversal.push_back(x);
@@ -156,13 +144,70 @@ void Traverse ( int iStart )
 		}
     }
 
+void Set_Vicinity ()
+    {
+    int vFace_size=vFace.size();
+	for ( int x=0;x<vFace_size;x++ )
+        {
+        bool temp;
+        for ( int y=0;y<vFace_sv.size(); )
+            {
+		    Face& a = vFace[x];
+		    Face& b = vFace[ vFace_sv[y].index ];
+		    int ai,aj,ak,bi,bj,bk;
+		    ai=aj=ak=bi=bj=bk=0;
+		    if ( a.i == b.i || a.i == b.j || a.i == b.k )
+		        ++ai;
+		    if ( a.j == b.i || a.j == b.j || a.j == b.k )
+		        ++aj;
+		    if ( a.k == b.i || a.k == b.j || a.k == b.k )
+		        ++ak;
+		    
+		    if ( b.i == a.i || b.i == a.j || b.i == a.k )
+		        ++bi;
+		    if ( b.j == a.i || b.j == a.j || b.j == a.k )
+		        ++bj;
+		    if ( b.k == a.i || b.k == a.j || b.k == a.k )
+		        ++bk;		
+		    if ( ai+aj+ak == 2 )
+		        {
+		        if ( ai && aj )
+		            a.vicinity[0] = b.index;
+		        else if ( ai && ak )
+		            a.vicinity[1] = b.index;
+		        else if ( aj && ak )
+		            a.vicinity[2] = b.index;				
+			    ++a.vicinity_count;
+			    }
+		    if ( bi+bj+bk == 2 )
+		        {
+		    	if ( bi && bj )
+	    			b.vicinity[0] = a.index;
+	    		else if ( bi && bk )
+	    			b.vicinity[1] = a.index;
+		    	else if ( bj && bk )
+		    		b.vicinity[2] = a.index;
+		    	++b.vicinity_count;
+		    	}
+	    	if ( b.vicinity_count == 3 )
+	            vFace_sv.erase( vFace_sv.begin()+y );
+	    	else
+	    	    y++;
+	    	}
+    	vFace_sv.push_back(vFace[x]);	    
+	    }	
+	}
+	
 int main ()
 {
-string sKeyWord;
+string sKeyWord,sMessages;
 int iMessages;
 int iStart;
 int p;
 int i,j,k;
+int rotation_times;
+
+vector<int> Rotate;
 
 fstream fin;
 fin.open("Stego.obj",ios::in);	//讀取Stego.obj 
@@ -181,10 +226,28 @@ while ( fin >> sKeyWord )	//由第一個英文字母來決定後面吃測資的方式
 	    {
 	    Face temp;
 	    fin >> i >> j >> k;
+	    
+		temp.index = vFace.size();	
+		    
+		if ( i > j )
+		    rotation_times = 2;
+		else if ( i > k )
+		    rotation_times = 1;
+		else
+		    rotation_times = 0;
+		Rotate.push_back( rotation_times );
+		
+		if ( i > j )
+		    swap( i , j );
+		if ( i > k )
+		    swap( i , k );
+		if ( j > k )
+		    swap( j , k );
+		    
 		temp.i = vVertex[i];
 	    temp.j = vVertex[j];
 	    temp.k = vVertex[k];
-		temp.index = vFace.size();	    
+	    
 		vFace.push_back( temp );
 		}
 	}
@@ -192,62 +255,15 @@ clock_t end = clock();
 float costTime = (float)(end - start)/CLK_TCK;
 printf("---fin : CPU Time: %f sec.\n",costTime );
 
-int vFace_size=vFace.size();
+cout << "Load file OK.\nTotal " << vVertex.size() -1 << " Vertex, " << vFace.size() << " Faces." << endl;
+
 start = clock();
-for ( int x=0;x<vFace_size;x++ )
-    {
-    bool temp;
-    for ( int y=0;y<vFace_sv.size(); )
-        {
-		Face& a = vFace[x];
-		Face& b = vFace[ vFace_sv[y].index ];
-		int ai,aj,ak,bi,bj,bk;
-		ai=aj=ak=bi=bj=bk=0;
-		if ( a.i == b.i || a.i == b.j || a.i == b.k )
-		    ++ai;
-		if ( a.j == b.i || a.j == b.j || a.j == b.k )
-		    ++aj;
-		if ( a.k == b.i || a.k == b.j || a.k == b.k )
-		    ++ak;
-		    
-		if ( b.i == a.i || b.i == a.j || b.i == a.k )
-		    ++bi;
-		if ( b.j == a.i || b.j == a.j || b.j == a.k )
-		    ++bj;
-		if ( b.k == a.i || b.k == a.j || b.k == a.k )
-		    ++bk;		
-		if ( ai+aj+ak == 2 )
-		    {
-		    if ( ai && aj )
-		        a.vicinity[0] = b.index;
-		    else if ( ai && ak )
-		        a.vicinity[1] = b.index;
-		    else if ( aj && ak )
-		        a.vicinity[2] = b.index;				
-			++a.vicinity_count;
-			}
-		if ( bi+bj+bk == 2 )
-		    {
-			if ( bi && bj )
-				b.vicinity[0] = a.index;
-			else if ( bi && bk )
-				b.vicinity[1] = a.index;
-			else if ( bj && bk )
-				b.vicinity[2] = a.index;
-			++b.vicinity_count;
-			}
-		if ( b.vicinity_count == 3 )
-	        vFace_sv.erase( vFace_sv.begin()+y );
-		else
-		    y++;
-		}
-	vFace_sv.push_back(vFace[x]);	    
-	}
+Set_Vicinity();
 end = clock();
 costTime = (float)(end - start)/CLK_TCK;
 printf("---set vicinity : CPU Time: %f sec.\n",costTime );
 
-cout << "Load file OK.\nTotal " << vVertex.size() -1 << " Vertex, " << vFace.size() << " Faces." << endl << endl;
+
 fin.close();
 fin.open("Secret Key.txt",ios::in);
 printf("Secret Key.txt loading success.\n");
@@ -258,18 +274,59 @@ iStart = iKey/1000;
 p = iKey%1000;
 int* iSeq = new int [p];
 int* iPer = new int [p];
-int iFactorial=1;
+int iFactorial = 1;
+int iThree_pow = 1;
+int sM_size = 1;
+
+
+sMessages = "";
+cout<<endl;
+Traverse(iStart,sM_size,p);
+
 
 for ( i = 0 ; i < p ; i ++ )
     {
 	iSeq[i] = i;
     if ( i )
-        iFactorial *= i;
+        {
+		iFactorial *= i;
+        iThree_pow *= 3;
+        }
 	}
-cout << iFactorial << endl;
+for ( i = 0 ; i < p ; i ++ )
+    {
+    int iTargetFace = viTraversal[i+1] >= iStart ? viTraversal[i+1]-1 : viTraversal[i+1];
+    iPer[i] = iTargetFace;
+	
+	}
+cout << "Permutation : ";
+iMessages = 0;
+for ( i = 0 ; i < p ; i ++ )
+    {
+	cout << iPer[i];
+	iMessages += ( 3*iSeq[iPer[i]]+Rotate[i] )*iFactorial*iThree_pow;
+    for ( j = iPer[i] + 1 ; j < p ; j ++ )
+        iSeq[j]--;
+    if ( i < p-1 )
+	    {
+		iFactorial /= p-1-i;
+	    iThree_pow /= 3;
+	    }
+    }
+cout << endl;
+sM_size = iMessages; 
+cout << "sM_size = " << sM_size << endl;
+for ( int x=0;x<viTraversal.size();x++ )
+    vFace[ viTraversal[x] ].check=0;
+viTraversal.clear();
+/*
+for ( i = 0 ; i < viTraversal.size() ; i ++ )
+    printf("%d->",viTraversal[i]);
+cout << endl;
+cout << p <<endl; */
 
 start = clock();
-Traverse(iStart);
+Traverse(iStart,sM_size,p);
 end = clock();
 costTime = (float)(end - start)/CLK_TCK;
 printf("---Traverse : CPU Time: %f sec.\n",costTime );
@@ -277,19 +334,46 @@ printf("---Traverse : CPU Time: %f sec.\n",costTime );
 /*for ( i = 0 ; i < viTraversal.size() ; i ++ )
     printf("%d->",viTraversal[i]);
 cout << endl;*/
-for ( i = 0 ; i < p ; i ++ )
-    iPer[i] = viTraversal[i+1] >= iStart ? viTraversal[i+1]-1 : viTraversal[i+1];
-cout << "Permutation : ";
-iMessages = 0;
-for ( i = 0 ; i < p ; i ++ )
-    {
-	cout << iPer[i];
-	iMessages += iSeq[iPer[i]]*iFactorial;
-    for ( j = iPer[i] + 1 ; j < p ; j ++ )
-        iSeq[j]--;
-    if ( i < p-1 )
-	    iFactorial /= p-1-i;
-    }
-cout << endl << "Message : " << iMessages << endl;
+
+for ( k = 1 ; k <= sM_size ; k ++ )
+	{
+	for ( i = 0 ; i < p ; i ++ )
+	    {
+		iSeq[i] = i;
+	    if ( i )
+	        {
+			iFactorial *= i;
+	        iThree_pow *= 3;
+	        }
+		}
+	for ( i = p*k ; i < p*k+p ; i ++ )
+	    {
+	    int iTargetFace = ( viTraversal[i+1] >= iStart ? viTraversal[i+1]-1 : viTraversal[i+1] );
+	    iPer[i-p*k] = iTargetFace-p*k;
+		}
+	cout << "Permutation : ";
+	iMessages = 0;
+	for ( i = 0 ; i < p ; i ++ )
+	    {
+		cout << iPer[i];
+		iMessages += ( 3*iSeq[iPer[i]]+Rotate[i+p*k] ) * iFactorial * iThree_pow;
+	    for ( j = iPer[i] + 1 ; j < p ; j ++ )
+	        iSeq[j]--;
+	    if ( i < p-1 )
+		    {
+			iFactorial /= p-1-i;
+		    iThree_pow /= 3;
+		    }
+	    }
+	cout << endl;
+    cout << "Rotate : ";
+    for ( i = p*k ; i < p*k+p ; i++ )
+        cout << Rotate[i] << ' ';
+    cout << endl;
+	cout << iMessages-128 << endl; 
+	sMessages.push_back(iMessages-128);
+	}
+	
+cout << endl << "Message : " << sMessages << endl;
 system("PAUSE");
 } 
